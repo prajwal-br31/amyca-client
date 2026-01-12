@@ -1,0 +1,28 @@
+import React from "react";
+import Link from "next/link";
+import { Search, HelpCircle, User } from "lucide-react";
+import { Header } from "@/components/ui/header";
+import { Sidebar } from "@/components/ui/sidebar";
+
+
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen bg-gradient">
+      <Sidebar />
+      <div className="flex-1">
+        <Header />
+        <main className="p-8">
+          <div className="glass-card p-8">
+            <h1 className="text-2xl font-bold mb-6">Connecting Multi Agents</h1>
+            {/* {children} */}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -11,6 +11,9 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "AmYcA",
   description: "AmYcA - Your Virtual Call Center",
+  icons: {
+    icon: '/logo.png', // Use existing logo as favicon
+  },
 }
 
 export const viewport: Viewport = {

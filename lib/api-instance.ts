@@ -2,7 +2,7 @@ import { ApiService } from './api-service';
 
 // Create an instance with your API base URL
 export const api = new ApiService(
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://amyca-server.onrender.com'
 );
 
 // ✅ Do NOT call api methods here.

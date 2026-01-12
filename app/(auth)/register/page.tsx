@@ -25,6 +25,14 @@ export default function RegisterPage() {
       return;
     }
     
+    // Email format validation (client-side)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const trimmedEmail = email.trim();
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -38,9 +46,12 @@ export default function RegisterPage() {
     setLoading(true);
     
     try {
+      // Trim and normalize email before sending
+      const normalizedEmail = trimmedEmail.toLowerCase();
+      
       const response: any = await api.post('/api/auth/register', { 
-        name,
-        email,
+        name: name.trim(),
+        email: normalizedEmail,
         password
       });
       

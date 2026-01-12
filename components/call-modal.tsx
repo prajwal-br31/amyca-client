@@ -55,7 +55,7 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
 
   const fetchWsUrl = async () => {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002'
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://amyca-server.onrender.com'
       const response = await fetch(`${apiBaseUrl}/api/ws-token`)
       
       if (!response.ok) {
@@ -408,13 +408,13 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal>
-      <DialogContent className="w-full max-w-[90vw] sm:max-w-[400px] h-auto flex flex-col justify-between z-[1000] overflow-hidden">
+      <DialogContent className="w-full max-w-[90vw] sm:max-w-[320px] h-auto flex flex-col justify-between z-[1000] overflow-hidden p-4">
         <DialogTitle className="sr-only">ABC Help Desk - Voice Call</DialogTitle>
         <DialogDescription className="sr-only">Voice call interface with Agent Tina</DialogDescription>
         
-        <div className="flex flex-col items-center space-y-4 py-2 flex-shrink-0">
-          <p className="text-2xl text-blue-500 opacity-90">ABC Help Desk</p>
-          <div className="relative w-48 h-48 sm:w-64 sm:h-64 shadow-xl rounded-full overflow-hidden flex-shrink-0">
+        <div className="flex flex-col items-center space-y-2 py-1 flex-shrink-0">
+          <p className="text-lg text-blue-500 opacity-90">ABC Help Desk</p>
+          <div className="relative w-32 h-32 sm:w-40 sm:h-40 shadow-xl rounded-full overflow-hidden flex-shrink-0">
             <Image
               src="/female-avatars/seliviya.svg"
               alt="AI Agent Avatar"
@@ -422,12 +422,12 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
               className="object-cover"
             />
           </div>
-          <p className="text-xl opacity-50">Agent Tina</p>
+          <p className="text-base opacity-50">Agent Tina</p>
         </div>
 
         {/* Status Display - Shows current state */}
-        <div className="flex-shrink-0 px-4 py-2">
-          <p className="text-gray-600 text-center text-sm font-medium">
+        <div className="flex-shrink-0 px-2 py-1">
+          <p className="text-gray-600 text-center text-xs font-medium">
             {!isCalling 
               ? 'Press call to start conversation'
               : !isConnected
@@ -441,9 +441,9 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
         </div>
 
         {/* Transcript Display - Fixed height, no scroll */}
-        <div className="flex-1 min-h-[120px] max-h-[180px] border rounded-lg p-3 bg-gray-50 space-y-2 overflow-hidden flex-shrink-0">
+        <div className="flex-1 min-h-[80px] max-h-[120px] border rounded-lg p-2 bg-gray-50 space-y-1 overflow-hidden flex-shrink-0">
           {transcripts.length === 0 ? (
-            <p className="text-gray-400 text-center text-sm py-8">
+            <p className="text-gray-400 text-center text-xs py-4">
               {isCalling ? 'Say something to start the conversation...' : 'Start a call to begin'}
             </p>
           ) : (
@@ -458,8 +458,8 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
                   }`}
                   style={{ maxWidth: '85%' }}
                 >
-                  <p className="text-sm break-words">{msg.text}</p>
-                  <p className="text-xs opacity-60 mt-1">
+                  <p className="text-xs break-words">{msg.text}</p>
+                  <p className="text-[10px] opacity-60 mt-0.5">
                     {msg.type === 'user' ? 'You' : 'Agent'}
                   </p>
                 </div>
@@ -487,11 +487,11 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
           </div>
         )}
 
-        <div className="flex justify-center mt-2 flex-shrink-0">
+        <div className="flex justify-center mt-1 flex-shrink-0">
           <Button
             onClick={toggleCall}
             size="lg"
-            className={`rounded-full p-6 ${
+            className={`rounded-full p-4 ${
               isCalling
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-green-500 hover:bg-green-600"
@@ -499,15 +499,15 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
             disabled={!wsUrl && !isCalling}
           >
             {isCalling ? (
-              <PhoneOff className="h-6 w-6" />
+              <PhoneOff className="h-5 w-5" />
             ) : (
-              <PhoneCall className="h-6 w-6" />
+              <PhoneCall className="h-5 w-5" />
             )}
           </Button>
         </div>
 
-        <div className="text-center flex-shrink-0 pb-2">
-          <small className="opacity-90 text-xs">
+        <div className="text-center flex-shrink-0 pb-1">
+          <small className="opacity-90 text-[10px]">
             {isCalling ? "Hang up" : "Press to call"}
           </small>
         </div>

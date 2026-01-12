@@ -35,6 +35,8 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
   const audioPlayerRef = useRef<AudioPlayer | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const userInitiatedDisconnectRef = useRef(false)
+  const processedMessagesRef = useRef<Set<string>>(new Set()) // Track processed messages to prevent duplicates
+  const lastMessageTimeRef = useRef<{ text: string; timestamp: number } | null>(null)
 
   // Fetch WebSocket URL from backend
   useEffect(() => {
@@ -197,15 +199,41 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
               break
 
             case 'response':
-              // Bot response text
+              // Bot response text - prevent duplicates using response ID or text matching
+              const responseId = data.responseId || `response-${Date.now()}`
+              const messageKey = data.responseId ? `bot-${responseId}` : `bot-${data.text.substring(0, 100)}`
+              const now = Date.now()
+              
+              // Check if this exact message was processed (by ID or text)
+              if (processedMessagesRef.current.has(messageKey)) {
+                console.log('⏭️ [CLIENT] Skipping duplicate bot response (already processed):', data.text.substring(0, 50))
+                return
+              }
+              
+              // Check if same text was received very recently (within 1 second) - likely duplicate
+              if (lastMessageTimeRef.current && 
+                  lastMessageTimeRef.current.text === data.text &&
+                  now - lastMessageTimeRef.current.timestamp < 1000) {
+                console.log('⏭️ [CLIENT] Skipping duplicate bot response (rapid duplicate):', data.text.substring(0, 50))
+                return
+              }
+              
+              // Mark as processed
+              processedMessagesRef.current.add(messageKey)
+              lastMessageTimeRef.current = { text: data.text, timestamp: now }
+              
+              // Clean up old entries (keep last 20)
+              if (processedMessagesRef.current.size > 20) {
+                const entries = Array.from(processedMessagesRef.current)
+                processedMessagesRef.current = new Set(entries.slice(-20))
+              }
+              
               setIsProcessing(true)
               setTranscripts((prev) => {
-                // Prevent duplicate responses (check if last message is the same)
-                const lastMessage = prev[prev.length - 1]
-                if (lastMessage && 
-                    lastMessage.type === 'bot' && 
-                    lastMessage.text === data.text) {
-                  console.log('⏭️ Skipping duplicate bot response:', data.text)
+                // Double-check: don't add if last message is identical
+                const lastMsg = prev[prev.length - 1]
+                if (lastMsg && lastMsg.type === 'bot' && lastMsg.text === data.text) {
+                  console.log('⏭️ [CLIENT] Skipping duplicate (last message identical):', data.text.substring(0, 50))
                   return prev
                 }
                 return [
@@ -217,7 +245,7 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
                   },
                 ]
               })
-              console.log('🤖 Bot response:', data.text)
+              console.log('🤖 [CLIENT] Bot response added:', data.text.substring(0, 50), 'ID:', responseId)
               break
 
             case 'audio_chunk':
@@ -396,6 +424,8 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
     setError(null)
     setTranscripts([])
     setIsProcessing(false)
+    processedMessagesRef.current.clear()
+    lastMessageTimeRef.current = null
   }
 
   const toggleCall = () => {

@@ -57,7 +57,19 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
 
   const fetchWsUrl = async () => {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://amyca-server.onrender.com'
+      // For local development, use http://localhost:3000
+      // For production, use the environment variable or Render URL
+      let apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      
+      // If no env var set, detect if we're on localhost
+      if (!apiBaseUrl) {
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          apiBaseUrl = 'http://localhost:3000';
+        } else {
+          apiBaseUrl = 'https://amyca-server.onrender.com';
+        }
+      }
+      
       const response = await fetch(`${apiBaseUrl}/api/ws-token`)
       
       if (!response.ok) {
@@ -65,8 +77,31 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
       }
 
       const data = await response.json()
-      setWsUrl(data.url)
-      console.log('✅ WebSocket URL fetched:', data.url)
+      let fetchedUrl = data.url
+      
+      // Ensure the URL includes the /ws path
+      if (fetchedUrl && !fetchedUrl.endsWith('/ws') && !fetchedUrl.includes('/ws?')) {
+        // If URL doesn't have /ws, add it
+        try {
+          const urlObj = new URL(fetchedUrl)
+          if (!urlObj.pathname || urlObj.pathname === '/') {
+            urlObj.pathname = '/ws'
+            fetchedUrl = urlObj.toString()
+            console.warn('⚠️ [CLIENT-WS] WebSocket URL missing /ws path, correcting to:', fetchedUrl)
+          }
+        } catch (urlError) {
+          // If URL parsing fails, try simple string manipulation
+          if (fetchedUrl.endsWith('/')) {
+            fetchedUrl = fetchedUrl.slice(0, -1) + '/ws'
+          } else {
+            fetchedUrl = fetchedUrl + '/ws'
+          }
+          console.warn('⚠️ [CLIENT-WS] WebSocket URL corrected to:', fetchedUrl)
+        }
+      }
+      
+      setWsUrl(fetchedUrl)
+      console.log('✅ WebSocket URL fetched and set:', fetchedUrl)
     } catch (error) {
       console.error('❌ Error fetching WebSocket URL:', error)
       setError('Failed to get connection URL. Please try again.')
@@ -99,7 +134,39 @@ export function TestCallModal({ open, onOpenChange }: TestModalProps) {
       // Mark that this is NOT a user-initiated disconnect
       userInitiatedDisconnectRef.current = false
 
-      const ws = new WebSocket(wsUrl)
+      // Get userId from localStorage (if available) or decode from token
+      let userId: string | null = null;
+      try {
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            // Try to decode JWT token to get userId
+            // JWT format: header.payload.signature
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userId = payload.id || payload.userId || payload._id || null;
+            console.log('🔑 [CLIENT-WS] User ID extracted from token:', userId);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ [CLIENT-WS] Could not extract userId from token:', error);
+      }
+      
+      // Add userId to WebSocket URL as query parameter if available
+      let finalWsUrl = wsUrl;
+      if (userId) {
+        try {
+          const url = new URL(wsUrl);
+          url.searchParams.set('userId', userId);
+          finalWsUrl = url.toString();
+          console.log('🔑 [CLIENT-WS] WebSocket URL with userId:', finalWsUrl);
+        } catch (urlError) {
+          console.warn('⚠️ [CLIENT-WS] Could not add userId to URL:', urlError);
+        }
+      } else {
+        console.warn('⚠️ [CLIENT-WS] No userId available - PDF search may include all users\' documents');
+      }
+      
+      const ws = new WebSocket(finalWsUrl)
       wsRef.current = ws
       console.log('✅ [CLIENT-WS] WebSocket object created, readyState:', ws.readyState)
 

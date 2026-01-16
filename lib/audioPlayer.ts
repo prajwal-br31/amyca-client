@@ -15,6 +15,9 @@ export class AudioPlayer {
   private nextPlayTime = 0;
   private audioBufferDuration = 0;
   private scheduledBuffers: AudioBufferSourceNode[] = [];
+  private processedChunks = new Set<string>(); // Track processed chunks to prevent duplicates
+  private lastChunkHash: string | null = null;
+  private lastChunkTime = 0;
 
   constructor(sampleRate: number = 24000, numChannels: number = 1) {
     this.sampleRate = sampleRate;
@@ -50,7 +53,8 @@ export class AudioPlayer {
 
   async addAudioChunk(base64Data: string, isLast: boolean = false): Promise<void> {
     this.chunkCounter++;
-    console.log(`🎵 [CLIENT-AUDIO-PLAYER] addAudioChunk() called #${this.chunkCounter}, isLast: ${isLast}, timestamp: ${Date.now()}`);
+    const now = Date.now();
+    console.log(`🎵 [CLIENT-AUDIO-PLAYER] addAudioChunk() called #${this.chunkCounter}, isLast: ${isLast}, timestamp: ${now}`);
     
     if (!this.audioContext) {
       console.log('🎵 [CLIENT-AUDIO-PLAYER] AudioContext not initialized, initializing...');
@@ -70,6 +74,35 @@ export class AudioPlayer {
         console.log('⏭️ [CLIENT-AUDIO-PLAYER] Received empty non-last chunk, skipping');
       }
       return;
+    }
+
+    // CRITICAL: Prevent duplicate chunk processing
+    // Create a hash of the chunk data (use first 100 chars + length for quick comparison)
+    const chunkHash = `${base64Data.substring(0, 100)}-${base64Data.length}`;
+    
+    // Check if this exact chunk was processed recently (within 1 second)
+    if (this.processedChunks.has(chunkHash)) {
+      console.warn(`⚠️ [CLIENT-AUDIO-PLAYER] DUPLICATE DETECTED: Chunk #${this.chunkCounter} already processed - SKIPPING`);
+      console.warn(`⚠️ [CLIENT-AUDIO-PLAYER] Chunk hash: ${chunkHash.substring(0, 50)}...`);
+      return;
+    }
+    
+    // Check if same chunk was received very recently (within 500ms) - likely duplicate
+    if (this.lastChunkHash === chunkHash && (now - this.lastChunkTime) < 500) {
+      console.warn(`⚠️ [CLIENT-AUDIO-PLAYER] DUPLICATE DETECTED: Same chunk received ${now - this.lastChunkTime}ms ago - SKIPPING`);
+      return;
+    }
+    
+    // Mark chunk as processed
+    this.processedChunks.add(chunkHash);
+    this.lastChunkHash = chunkHash;
+    this.lastChunkTime = now;
+    
+    // Clean up old chunk hashes (keep last 50 to prevent memory leak)
+    if (this.processedChunks.size > 50) {
+      const entries = Array.from(this.processedChunks);
+      this.processedChunks = new Set(entries.slice(-50));
+      console.log('🔄 [CLIENT-AUDIO-PLAYER] Cleaned up old chunk hashes, keeping last 50');
     }
 
     try {
@@ -188,6 +221,9 @@ export class AudioPlayer {
     this.audioQueue = [];
     this.isPlaying = false;
     this.nextPlayTime = 0;
+    this.processedChunks.clear();
+    this.lastChunkHash = null;
+    this.lastChunkTime = 0;
     console.log('🛑 Audio playback stopped');
   }
 

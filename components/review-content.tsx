@@ -13,21 +13,32 @@ interface systemPropmtProps{
   systemPrompt:string
 }
 
+interface DocumentFile {
+  _id: string;
+  id?: string;
+  originalName: string;
+  size: string;
+  description: string;
+  createdAt: string;
+  status: string;
+}
+
 export function ReviewContent({systemPrompt}:systemPropmtProps) {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<DocumentFile[]>([]);
 
   
   useEffect(() => {
 
     async function fetchFiles() {
       try {
-        const response = await api.get("/api/documents");
+        const response = await api.get<DocumentFile[]>("/api/documents");
         console.log(response)
-        setFiles(response);
+        setFiles(Array.isArray(response) ? response : []);
       } catch (error) {
         console.error("Error fetching files:", error);
+        setFiles([]);
       }
     }
 
@@ -101,9 +112,9 @@ export function ReviewContent({systemPrompt}:systemPropmtProps) {
         <div className="flex gap-2 border-b border-dashed border-gray-400 py-4">
           <div className="font-medium min-w-48">Knowledge Files:</div>
           <div className="flex flex-wrap gap-2">
-            {files.slice(0, 5).map((file: any) => (
+            {files.slice(0, 5).map((file) => (
               <a
-                key={file.id}
+                key={file._id || file.id}
                 href="#"
                 className="text-blue-600 hover:underline"
               >
